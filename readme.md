@@ -76,9 +76,9 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 
 
-1. Install .Net 5.0 
+1. Install .Net 5.0 by follow the [tutorial](https://docs.microsoft.com/en-us/dotnet/iot/deployment#deploying-a-framework-dependent-app) steps
 
-1. Copy project files.
+1. Make a folder and copy project files by using WinSCP tool.
 
 1. Build the project.
 
