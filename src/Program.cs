@@ -16,8 +16,10 @@ namespace SayTheName
         private static SpeechConfig speechConfig;
         private static FormRecognizerClient formClient;
 
-        private static string cogSvcKey;
-        private static string cogSvcRegion;
+        private static string speechSvcKey;
+        private static string speechSvcRegion;
+        private static string formSvcKey;
+        private static string formSvcRegion;
         private static string photoPath;
         private static string photoCommand;
         private static string photoCommandParam;
@@ -29,21 +31,23 @@ namespace SayTheName
                 // Get config settings from AppSettings
                 IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json");
                 IConfigurationRoot configuration = builder.Build();
-                cogSvcKey = configuration["CognitiveServiceKey"];
-                cogSvcRegion = configuration["CognitiveServiceRegion"];
+                speechSvcKey = configuration["SpeechServiceKey"];
+                speechSvcRegion = configuration["SpeechServiceRegion"];
+                formSvcKey = configuration["FormServiceKey"];
+                formSvcRegion = configuration["FormServiceRegion"];
                 photoPath = configuration["PhotoPath"];
                 photoCommand = configuration["PhotoCommand"];
                 photoCommandParam = configuration["PhotoCommandParam"];
 
                 // Configure speech service
-                speechConfig = SpeechConfig.FromSubscription(cogSvcKey, cogSvcRegion);
+                speechConfig = SpeechConfig.FromSubscription(speechSvcKey, speechSvcRegion);
                 speechConfig.SpeechSynthesisVoiceName = "en-GB-RyanNeural";
                 using (SpeechSynthesizer speechSynthesizer = new SpeechSynthesizer(speechConfig))
                 {
                     Console.WriteLine("Ready to use speech service in " + speechConfig.Region);
 
-                    AzureKeyCredential credential = new AzureKeyCredential(cogSvcKey);
-                    formClient = new FormRecognizerClient(new Uri($"https://{cogSvcRegion}.api.cognitive.microsoft.com"), credential);
+                    AzureKeyCredential credential = new AzureKeyCredential(formSvcKey);
+                    formClient = new FormRecognizerClient(new Uri($"https://{formSvcRegion}.api.cognitive.microsoft.com"), credential);
                    
                     while (true)
                     {
