@@ -86,7 +86,7 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 1. Place the objects for identification on the solid background with about 3 fit distance from the camera.The blurry images will be unrecognizable so try to stabilize the camera.
 
-    ![scene](img\setup.png)
+    ![scene](/img/setup.png)
 
 1. Make sure that there are enough lights in the picture area. 
 
@@ -94,7 +94,7 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 1. Use `fswebcam` as explained above to take test snapshots.
 
-    ![camera test](img\camtest.png)
+    ![camera test](/img/camtest.png)
 
 ## Run applications.
 
