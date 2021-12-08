@@ -72,11 +72,21 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 1. Connect by SSH to RPi (PuTTY) and change the default password.
 
+1. Install .Net 5.0 by follow the [tutorial](https://docs.microsoft.com/en-us/dotnet/iot/deployment#deploying-a-framework-dependent-app) steps.
+
+1. Install ASLA packages by following command:
+
+    ```bash
+    sudo apt-get install gcc libasound2 libasound2-dev alsa-utils
+    ```
+
+1. You can check if the audio and speaker works on your RPi by running following command. It should produce a noise for your default audio device connected to `**`audio jack`. *USB or Bluetooth speaker does not supported* by the code. 
+
+    ```bash
+        speaker-test -c2
+    ```
+
 1. Connect your USB camera to RPi and install the tool `fswebcam` for taking snapshots. You also can test how the camera takes snapshots by following the [tutorial](https://tutorials-raspberrypi.com/raspberry-pi-security-camera-with-webcam/). Then use WinSCP to connect to the RPi and download images to observe.
-
-
-
-1. Install .Net 5.0 by follow the [tutorial](https://docs.microsoft.com/en-us/dotnet/iot/deployment#deploying-a-framework-dependent-app) steps
 
 1. Make a folder and copy project files by using WinSCP tool.
 
