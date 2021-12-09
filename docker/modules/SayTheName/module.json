@@ -1,0 +1,15 @@
+{
+    "$schema-version": "0.0.1",
+    "description": "",
+    "image": {
+        "repository": "<your acr name>.azurecr.io/saythename",
+        "tag": {
+            "version": "0.0.1",
+            "platforms": {
+                "arm32v7": "./arm32v7.Dockerfile"
+            }
+        },
+        "buildOptions": []
+    },
+    "language": "C#"
+}

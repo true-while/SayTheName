@@ -1,6 +1,10 @@
-# Accessing Azure Cognitive Services from a Raspberry Pi 3
+# Accessing Azure Cognitive Services from a Raspberry Pi
 
-This is a sample showing how to get connected from Raspberry Pi 3 device to Cognitive Azure Services. *Speech Service* is a service trained to convert speech to text and text to speech. In the tutorial speech will be synthesized by speech service and played from RPi. Another service named *Form Recognizer* will be used for analyzing snapshot of business cards taken by RPi camera and respond back with extract data in JSON. Form Recognizer will use unsupervised algorithms to extract info from business cards. The info from the card will be synthesized as speech and played from IoT Device (RPi).
+if the following tutorial you will found how to build AI solution on the IoT devices for connected scenario and upgrade it for containers and host with disconnected scenario.
+
+# Part 1: Connected Application Scenario.  
+
+This is a chapter showing how to build connected scenario on Raspberry Pi 3 device and communicate with Cognitive Azure Services. *Speech Service* is a service trained to convert speech to text and text to speech. In the tutorial speech will be synthesized by speech service and played from RPi. Another service named *Form Recognizer* will be used for analyzing snapshot of business cards taken by RPi camera and respond back with extract data in JSON. Form Recognizer will use unsupervised algorithms to extract info from business cards. The info from the card will be synthesized as speech and played from IoT Device (RPi).
 
 ![schema](/img/iot.png)
 
@@ -47,7 +51,9 @@ This is a sample showing how to get connected from Raspberry Pi 3 device to Cogn
 
 ## Prepare the project
 
-Update **appsettings.json** file in the root folder with cognitive service account details used for recognition and speech synthesize. Keep other values for RPi by default.
+1. The project source located in `/src` folder.
+
+1. Update **appsettings.json** file in the root folder with cognitive service account details used for recognition and speech synthesize. Keep other values for RPi by default.
 If you use a multi-service resource the keys and regions settings will be the same. Alternatively you can provide key and region from each speech and form service. Following [tutorial](https://docs.microsoft.com/en-us/azure/cognitive-services/cognitive-services-apis-create-account?tabs=multiservice%2Cwindows#get-the-keys-for-your-resource) will explain the location of keys and regions.
 
 
@@ -58,8 +64,8 @@ If you use a multi-service resource the keys and regions settings will be the sa
   "FormServiceKey": "<your key>",
   "FormServiceRegion": "<region>",
   "PhotoCommand": "fswebcam",
-  "PhotoCommandParam": "-r 1280x720 --no-banner /home/pi/photos/cam.jpg",
-  "PhotoPath": "/home/pi/photos/cam.jpg"
+  "PhotoCommandParam": "-r 1280x720 --no-banner cam.jpg",
+  "PhotoPath": "cam.jpg"
 }
 ```
 
@@ -72,15 +78,15 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 1. Connect by SSH to RPi (PuTTY) and change the default password.
 
-1. Install .Net 5.0 by follow the [tutorial](https://docs.microsoft.com/en-us/dotnet/iot/deployment#deploying-a-framework-dependent-app) steps.
+1. Install .Net 5.0 by following  the [tutorial](https://docs.microsoft.com/en-us/dotnet/iot/deployment#deploying-a-framework-dependent-app) steps.
 
-1. Install ASLA packages by following command:
+1. Install ALSA packages by following command:
 
     ```bash
     sudo apt-get install gcc libasound2 libasound2-dev alsa-utils
     ```
 
-1. You can check if the audio and speaker works on your RPi by running following command. It should produce a noise for your default audio device connected to `**`audio jack`. *USB or Bluetooth speaker does not supported* by the code. 
+1. You can check if the audio and speaker works on your RPi by running the following command. It should produce a noise for your default audio device connected to `**`audio jack`. *USB or Bluetooth speakers are not supported* by the code. 
 
     ```bash
         speaker-test -c2
@@ -88,9 +94,9 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 1. Connect your USB camera to RPi and install the tool `fswebcam` for taking snapshots. You also can test how the camera takes snapshots by following the [tutorial](https://tutorials-raspberrypi.com/raspberry-pi-security-camera-with-webcam/). Then use WinSCP to connect to the RPi and download images to observe.
 
-1. Make a folder and copy project files by using WinSCP tool.
+1. Copy files including updated `appsettings.json` to RPi by using WinSCP tool.
 
-1. Build the project.
+1. Build dotnet the project.
 
 ## Setting up the scene
 
@@ -115,10 +121,120 @@ If you use a multi-service resource the keys and regions settings will be the sa
 1. Monitor output for unrecognized or blurry images which lead to message 'no business card detected'. During 5second interval you can change the objects for detection.
 
 
+
+# Part 2: Connected Containers Scenario.  
+
+In this chapter you will upgrade the code for hosting on the docker container running on RPi with IoT Edge. The same code you have above now will be pushed to the container registry in Azure from your development environment. Later IoT edge service installed on RPi will pull the container and start the process in the same way as it works before. We can update our schema with IoT Hub and Azure container registry:
+
+![](/img/schema-2.png)
+
+
+## Prepare dev environment.
+
+1. The tutorial supposed you have already completed the steps above and has Cognitive Services deployed in your Azure subscription.
+
+1. Install extension for [Visual Studio Code](https://code.visualstudio.com/) to configured with the [Azure IoT Tools](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.azure-iot-tools).
+
+1. To build docker images you also need to install [Docker CE](https://docs.docker.com/install/) and configure it to run Linux containers.
+
+## Prepare Azure Resources. 
+
+1. In your web browser, navigate to the [Azure Portal](http://portal.azire.com) and create a new free or standard-tier [IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub/).
+
+1. On the Azure portal create a new [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/?view=iotedge-2020-11). 
+
+
+
+## Build project on development environment
+
+1. You can find the application for docker in `/docker/` folder.
+
+1. Make sure in VS Code you select `arm32v7` as the target platform.
+
+1. In the `deployment.template.json` update registryCredentials with the `full` name of your ACR.
+
+    ```JSON
+
+     "alexacrdemo": {
+        "username": "<your username>",
+        "password": "<your password>",
+        "address": "<your arc name>.azurecr.io"
+    }
+    ```
+
+1. From terminal window in VS Code run command to sign in `az acr login -n <short name of your ACR>`.
+
+1. From terminal run command `py version.py` to generate new versions of the `module.json` files.
+
+1. Select file `deployment.template.json` in project view and from context menu choice `Build and Push IoT Edge Solution`. Then docker builds images and pushes them in ACR. 
+
+1. Make sure the build ends up successfully and your Azure Container Registry has required container images.
+
+![acr](/img/acr.png)
+
+
+## Prepare RPi to Host Iot Edge
+
+1. Before install IoT Edge you first need to install the container engine by executing the following commands in the [tutorial](https://phoenixnap.com/kb/docker-on-raspberry-pi). 
+
+1. You also need to install [IoT Edge](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11#install-iot-edge) on your RPi device. You also need to update the security [demon](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-update-iot-edge?view=iotedge-2020-11&tabs=linux#update-the-security-daemon).
+
+1. To properly configure `/etc/aziot/config.toml` you need to register your IoT device in Iot Hub. The following [tutorial](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-register-device?view=iotedge-2020-11&tabs=azure-portal) explained the registration process with a symmetric key. From the Azure portal create an IoT Hub and add a new Iot Edge device. Provide a unique name and keep all default settings and generated keys. Copy primary key into `config.toml`. 
+
+1. Restart your device and wait for status update of device on the IoT Hub. You also can execute command "iotedge list" to monitor process. Please pay attention for the version of `azureiotedge-hub` and `azureiotedge-agent`you use. Version 1.0.0 has an issue and you can update that to version 1.2.3. You can use runtime settings as explained in following [tutorial](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-update-iot-edge?view=iotedge-2020-11&tabs=windows#update-a-specific-tag-image)   
+
+1. Finlay you should have your IoTEdge modules running on RPi without errors. 
+    
+    ![output](/img/iothub-screen.png)
+
+
+
+## Deploy modules on RPi
+
+1. Make sure your build is successful and ACR contains the version you set up in configuration.
+
+1. From the VS code context menu select command `Build and Publish Iot Edge Solution`. Then you can use the command palette `Azure IoT Edge: Create deployment for a single device` and choose your device and file `config\deployment.arm32v7.json`.
+
+    >If you lost with deployment follow the steps in [tutorial](https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-custom-vision?view=iotedge-2020-11#deploy-modules-to-device)
+
+1. As result of deployment your RPi should contain 3 modules (`azureiotedge-agent`, `azureiotedge-hub`, `SayTheName`). You can monitor modules from IoT Hub or from the SSH console by command `iotedge list`. You also can retrieve the logs of the container run by command `iotedge log <your container name>`
+
+    ![service list](/img/iotedgecontainers.png)
+
+
+## Setting up the scene
+
+The settings should not be changed from the previous run. You still need to connect your speaker or headphones to the audio jack on RPi and fix the camera steady to take clear shots of the business card. For example take a look at the setup above in Part 1.
+
+
+## Monitor and diagnose applications.
+
+1. From the SSH console you can use commands like `iotedge logs SayTheName`  to monitor errors and issues. Correct output of the detector should looks as following:
+
+    ![output](/img/container-results.png)
+
+    > Note that the error from ALSA library is coming only for the first and does not prevent speech synthesize and output on speaker.
+
+    > [troubleshot iotedge service](https://docs.microsoft.com/en-us/azure/iot-edge/troubleshoot?view=iotedge-2020-11)
+
+
+1. To trace and diagnose an application you can modify the docker file and run some diagnostic app as the entry point of your container. For example, replace `ENTRYPOINT ["dotnet", "SayTheName.dll"]` with `ENTRYPOINT ["speaker-test", "-c2"]` to test access to your speaker running from a container.
+
+
 # References
 
 1. Use form recognizer studio and supervised algorithms when unsupervised does not help. https://docs.microsoft.com/bg-bg/azure/applied-ai-services/form-recognizer/concept-business-card
 
-2. Form Recognizer SDK and code snippets on C#, Java and Python. https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/how-to-guides/try-sdk-rest-api?pivots=programming-language-csharp
+1. Form Recognizer SDK and code snippets on C#, Java and Python. https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/how-to-guides/try-sdk-rest-api?pivots=programming-language-csharp
 
-3. Speech SDk and code snippets on C#, Java and Python. https://docs.microsoft.com/en-us/samples/azure-samples/cognitive-services-speech-sdk/sample-repository-for-the-microsoft-cognitive-services-speech-sdk/
+1. Speech SDk and code snippets on C#, Java and Python. https://docs.microsoft.com/en-us/samples/azure-samples/cognitive-services-speech-sdk/sample-repository-for-the-microsoft-cognitive-services-speech-sdk/
+
+1. [Build RPi solution from Ch9](https://github.com/Azure-Samples/Custom-vision-service-iot-edge-raspberry-pi)
+
+1. [How To Access the Raspberry Pi Camera Inside Docker and OpenCV](https://spltech.co.uk/how-to-access-the-raspberry-pi-camera-inside-docker-and-opencv/)
+
+1. [Fixing Docker build issue](https://dev.to/kenakamu/export-custom-vision-model-to-raspberry-pi-3-issue-and-fix-29bg)
+
+1. [Uncompleted MS tutorial: Perform image classification at the edge with Custom Vision Service](https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-custom-vision?view=iotedge-2020-11)
+
+1. [Connection PI camera to RPi](https://www.teachmemicro.com/uploading-camera-images-raspberry-pi-website/)
