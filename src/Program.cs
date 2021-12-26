@@ -17,9 +17,9 @@ namespace SayTheName
         private static FormRecognizerClient formClient;
 
         private static string speechSvcKey;
-        private static string speechSvcRegion;
+        private static string speechSvcEndpoint;
         private static string formSvcKey;
-        private static string formSvcRegion;
+        private static string formSvcEndpoint;
         private static string photoPath;
         private static string photoCommand;
         private static string photoCommandParam;
@@ -32,23 +32,25 @@ namespace SayTheName
                 IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json");
                 IConfigurationRoot configuration = builder.Build();
                 speechSvcKey = configuration["SpeechServiceKey"];
-                speechSvcRegion = configuration["SpeechServiceRegion"];
+                speechSvcEndpoint = configuration["SpeechServiceEndpoint"];
                 formSvcKey = configuration["FormServiceKey"];
-                formSvcRegion = configuration["FormServiceRegion"];
+                formSvcEndpoint = configuration["FormServiceEndpoint"];
                 photoPath = configuration["PhotoPath"];
                 photoCommand = configuration["PhotoCommand"];
                 photoCommandParam = configuration["PhotoCommandParam"];
 
                 // Configure speech service
-                speechConfig = SpeechConfig.FromSubscription(speechSvcKey, speechSvcRegion);
-                speechConfig.SpeechSynthesisVoiceName = "en-GB-RyanNeural";
+                speechConfig = SpeechConfig.FromEndpoint(new Uri(speechSvcEndpoint),speechSvcKey);
+                speechConfig.SpeechSynthesisVoiceName = "en-US-AriaRUS";
                 using (SpeechSynthesizer speechSynthesizer = new SpeechSynthesizer(speechConfig))
                 {
-                    Console.WriteLine("Ready to use speech service in " + speechConfig.Region);
+                    Console.WriteLine("Ready to use speech service in " + speechSvcEndpoint);
 
                     AzureKeyCredential credential = new AzureKeyCredential(formSvcKey);
-                    formClient = new FormRecognizerClient(new Uri($"https://{formSvcRegion}.api.cognitive.microsoft.com"), credential);
+                    formClient = new FormRecognizerClient(new Uri(formSvcEndpoint), credential);
                    
+                    Console.WriteLine("Ready to use form service in " + formSvcEndpoint);
+
                     while (true)
                     {
                         // Get camera input

@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  azure-cognitive-service-text-to-speech:
+    container_name: azure-cognitive-service-text-to-speech
+    image: mcr.microsoft.com/azure-cognitive-services/speechservices/text-to-speech
+    environment:
+      - cpus=1
+      - memory=2g 
+      - EULA=accept
+      - Billing=<your end point>
+      - ApiKey=<your key>
+    ports:
+      - "5001:5000"
+  azure-cognitive-service-businesscard:
+    container_name: azure-cognitive-service-businesscard
+    image: mcr.microsoft.com/azure-cognitive-services/form-recognizer/businesscard
+    environment:
+      - EULA=accept
+      - Billing=<your end point>
+      - ApiKey=<your key>
+      - AzureCognitiveServiceReadHost=http://azure-cognitive-service-read:5000
+    ports:
+      - "5002:5050"
+    networks:
+      - ocrvnet
+  azure-cognitive-service-read:
+    container_name: azure-cognitive-service-read
+    image: mcr.microsoft.com/azure-cognitive-services/vision/read:3.2
+    environment:
+      - EULA=accept
+      - Billing=<your end point>
+      - ApiKey=<your key>
+    networks:
+      - ocrvnet
+
+networks:
+  ocrvnet:
+    driver: bridge

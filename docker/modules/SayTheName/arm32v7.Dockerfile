@@ -11,7 +11,6 @@ RUN install_packages \
     avahi-utils
 
 WORKDIR /app
-COPY time.wav time.wav
 
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src

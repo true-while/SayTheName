@@ -1,10 +1,10 @@
 # Accessing Azure Cognitive Services from a Raspberry Pi
 
-if the following tutorial you will found how to build AI solution on the IoT devices for connected scenario and upgrade it for containers and host with disconnected scenario.
+in the following tutorial you will find how to build an AI solution on the IoT devices for connected scenarios and upgrade it for containers and hosts with disconnected scenarios.
 
 # Part 1: Connected Application Scenario.  
 
-This is a chapter showing how to build connected scenario on Raspberry Pi 3 device and communicate with Cognitive Azure Services. *Speech Service* is a service trained to convert speech to text and text to speech. In the tutorial speech will be synthesized by speech service and played from RPi. Another service named *Form Recognizer* will be used for analyzing snapshot of business cards taken by RPi camera and respond back with extract data in JSON. Form Recognizer will use unsupervised algorithms to extract info from business cards. The info from the card will be synthesized as speech and played from IoT Device (RPi).
+This is a chapter showing how to build a connected scenario on a Raspberry Pi 3 device and communicate with Cognitive Azure Services. Speech Service is a service trained to convert speech to text and text to speech. In the tutorial speech will be synthesized by speech service and played from RPi. Another service named Form Recognizer will be used for analyzing snapshot of business cards taken by RPi camera and respond back with extract data in JSON. Form Recognizer will use unsupervised algorithms to extract info from business cards. The info from the card will be synthesized as speech and played from IoT Device (RPi).
 
 ![schema](/img/iot.png)
 
@@ -60,15 +60,15 @@ If you use a multi-service resource the keys and regions settings will be the sa
 ```JSON
 {
   "SpeechServiceKey": "<your key>",
-  "SpeechServiceRegion": "<region>",
+  "SpeechServiceEndpoint": "<your service endpoint>",
   "FormServiceKey": "<your key>",
-  "FormServiceRegion": "<region>",
+  "FormServiceEndpoint": "<your service endpoint>",
   "PhotoCommand": "fswebcam",
   "PhotoCommandParam": "-r 1280x720 --no-banner cam.jpg",
   "PhotoPath": "cam.jpg"
 }
 ```
-
+>Please pay attention that `ServiceEndpoint` for Speech service should be provided in format: `https://eastus.api.cognitive.microsoft.com/sts/v1.0/issuetoken`
 
 ## Prepare RPi to run the project
 
@@ -89,7 +89,7 @@ If you use a multi-service resource the keys and regions settings will be the sa
 1. You can check if the audio and speaker works on your RPi by running the following command. It should produce a noise for your default audio device connected to `**`audio jack`. *USB or Bluetooth speakers are not supported* by the code. 
 
     ```bash
-        speaker-test -c2
+    speaker-test -c2
     ```
 
 1. Connect your USB camera to RPi and install the tool `fswebcam` for taking snapshots. You also can test how the camera takes snapshots by following the [tutorial](https://tutorials-raspberrypi.com/raspberry-pi-security-camera-with-webcam/). Then use WinSCP to connect to the RPi and download images to observe.
@@ -126,14 +126,14 @@ If you use a multi-service resource the keys and regions settings will be the sa
 
 In this chapter you will upgrade the code for hosting on the docker container running on RPi with IoT Edge. The same code you have above now will be pushed to the container registry in Azure from your development environment. Later IoT edge service installed on RPi will pull the container and start the process in the same way as it works before. We can update our schema with IoT Hub and Azure container registry:
 
-![](/img/schema-2.png)
+  ![schema](/img/iot-c.png)
 
 
 ## Prepare dev environment.
 
-1. The tutorial supposed you have already completed the steps above and has Cognitive Services deployed in your Azure subscription.
+1. The tutorial supposed you have already completed the steps above and have Cognitive Services deployed in your Azure subscription.
 
-1. Install extension for [Visual Studio Code](https://code.visualstudio.com/) to configured with the [Azure IoT Tools](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.azure-iot-tools).
+1. Install extension for [Visual Studio Code](https://code.visualstudio.com/) configured with the [Azure IoT Tools](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.azure-iot-tools).
 
 1. To build docker images you also need to install [Docker CE](https://docs.docker.com/install/) and configure it to run Linux containers.
 
@@ -215,11 +215,105 @@ The settings should not be changed from the previous run. You still need to conn
 
     > Note that the error from ALSA library is coming only for the first and does not prevent speech synthesize and output on speaker.
 
-    > [troubleshot iotedge service](https://docs.microsoft.com/en-us/azure/iot-edge/troubleshoot?view=iotedge-2020-11)
+    > [troubleshoot iotedge service](https://docs.microsoft.com/en-us/azure/iot-edge/troubleshoot?view=iotedge-2020-11)
 
 
 1. To trace and diagnose an application you can modify the docker file and run some diagnostic app as the entry point of your container. For example, replace `ENTRYPOINT ["dotnet", "SayTheName.dll"]` with `ENTRYPOINT ["speaker-test", "-c2"]` to test access to your speaker running from a container.
 
+
+# Part 3: Disconnected Containers Scenario.  
+
+In this chapter you will upgrade the solution to communicate with exported cognitive docker containers running on premises. The main idea of the disconnected solution is running all algorithms including cognitive services on edge and minimizing communication latency. The cognitive services can be exported as containers to run on a device in the docker container. Containers running on a device will still track its usage for billing purposes and it reports periodically to Azure its metrics (dotted lines). The cognitive containers can be included in the IoT edge deployment process and host with the main logic container as described above in Part 2. 
+
+  ![schema](/img/iot-cl.png)
+
+Unfortunately for the time when the tutorial developed only Custom Vision containers can be exported for `arm32/64` architecture to run on RPi. Other services including speech and form recognizer can be run only on the `amd64` platform. So in the following steps we will run containers on your host which is better then run in Azure in case of minimizing latency. Later when arm platforms will be supported we can move containers in RPi. Another roadblocks of running a cognitive service container on the RPi is high memory and cpu consumption. Minimum requirements are 1gb for each of the containers to run.
+
+
+## Prepare dev environment.
+
+1. Please make sure that `docker compose` command is supported on your development host. If not please update the [docker desktop](https://www.docker.com/products/docker-desktop) with the latest version. For container orchestration we need the extension to run docker with configuration from a local file.
+
+1. Run the following command to download speech and form containers to the local host
+
+    ```cmd
+    docker pull mcr.microsoft.com/azure-cognitive-services/form-recognizer/businesscard
+    docker pull mcr.microsoft.com/azure-cognitive-services/vision/read:3.2
+    docker pull mcr.microsoft.com/azure-cognitive-services/speechservices/text-to-speech
+    ```
+
+
+## Prepare Azure Resources. 
+
+1. You can build new or reuse existing Azure Cognitive Service **Form Recognizer** and copy the `key` and `endpoint` from service settings as explained in the following [instruction](https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/containers/form-recognizer-container-install-run?tabs=business-card#run-the-container-with-the-docker-compose-up-command). You need them to update config in the code.
+
+1. You can build new or reuse existing Azure Cognitive **Service Speech** Service and copy the `key` and `endpoint` from service settings as explained in following [instruction](https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-container-howto?tabs=stt%2Ccsharp%2Csimple-format#gathering-required-parameters). You need them to update config in the code. 
+
+
+## Prepare your host. 
+
+1. Open file  [docker-compose.yaml](./docker-compose.yaml) and the following file in the project folder to run all required cognitive service on your host pc. As it discussed above the containers do not support ARM platform to run on the RPi. `Billing` and `AppKey` values need to be updated in 3 places with values you collected above from Azure.
+
+    ```yaml
+    - Billing=<your endpoint>
+    - ApiKey=<your key>
+    ```
+
+1. From the console in the folder where you have updated file docker-compose.yaml run the following command and monitor output.
+
+    ```cmd
+    docker compose up
+    ```
+    > Note that some of the errors can occur while the service has not completely started. In the next step you will use a test platform to make sure that services work well.
+
+1. Next is important to make sure that containers work as expected. You can access to `http://localhost:5002/swagger` for **Cognitive Service Form Recognizer API**. You can check status functions as explained in the validation [tutorial](https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/containers/form-recognizer-container-install-run?tabs=business-card#validate-that-the-service-is-running). You also can test `/formrecognizer/v2.1/prebuilt/businessCard/syncAnalyze` following method on swagger page by uploading test business card image.
+
+    ![card test](./img/c-test.png)
+
+1. Next is important to make sure that containers work as expected. You can access to `http://localhost:5001/swagger` for **Text To Speech Cognitive Services API**. You can check status functions as explained in the validation [tutorial](https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-container-howto?tabs=stt%2Ccsharp%2Csimple-format#validate-that-a-container-is-running). You can test that service only from [code example](https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/get-started-text-to-speech?tabs=script%2Cwindowsinstall&pivots=programming-language-csharp). The required modification for connecting to the local container will be discussed in the next section.
+
+
+## Update the code to work with local containers.
+
+1. Run the following command in the terminal on the host where you run `docker compose up` command to detect your current IP address:
+
+    ```cmd
+    ipconfig
+    ```
+
+1. From the output of the `ipconfig` command pick up the IP address likely for your WiFi adapter and get access to the IP from the browser with port 5001 and 5002 and test it with swagger. For example, if my IP address is 10.0.0.4 I will get a response (described above) from http://10.0.0.4:5001.
+
+1. Open `appsetings.json` and update the following values with your. Note that you should update settings with your IP address retrieved above. Also note that Keys should not be empty values and can contain any string values:
+
+    ```JSON
+    "SpeechServiceKey": "test",
+    "SpeechServiceEndpoint": "http://<your host ip address>:5001",
+    "FormServiceKey": "test",
+    "FormServiceEndpoint": "http://<your host ip address:5002",
+    ```
+
+1. You also need to update a code to work with a local container not with Azure endpoint. First of all you need to update configuration of speech services (located about 43 in `Program.cs`). Second you need to make sure you use a supported voice for synthesis. [Documentation](https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-container-howto?tabs=stt%2Ccsharp%2Csimple-format#text-to-speech-standard-and-neural) is recommended to use en-US-AriaNeural but for my container it was not supported, so `en-US-AriaRUS` had been chosen. The code changes is below: 
+
+    ```C#
+    // Configure speech service
+    speechConfig = SpeechConfig.FromHost(new Uri(speechSvcEndpoint));
+    //speechConfig = SpeechConfig.FromEndpoint(new Uri(speechSvcEndpoint),speechSvcKey);
+    speechConfig.SpeechSynthesisVoiceName = "en-US-AriaRUS";
+
+    ```
+
+## Deploy modules on RPi
+
+1. After updating configuration files and code files you need to build a new version of the container and upload it to the Azure Container Registry. Follow the instruction above in Part 2 to build and deploy the new version of container.
+
+
+## Monitor and diagnose applications.
+
+1. Use commands like `iotedge list` and `iotedge logs SayTheName` to monitor IoT edge containers. For details follow the instruction above in Part 2.
+
+1. For diagnostic purpose you can monitor the output of the `docker compose` command for tracking requests from RPi:
+
+![form-output](./img/form-output.png)
 
 # References
 
